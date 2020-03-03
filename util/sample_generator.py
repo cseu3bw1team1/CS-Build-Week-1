@@ -62,6 +62,8 @@ class World:
             return self.grid[y + 1][x]
         elif direction == 'e':
             return self.grid[y][x + 1]
+        elif direction == 's':
+            return self.grid[y - 1][x]
 
     def is_out_of_bounds(self, direction, x, y):
         if direction == 'w':
@@ -70,6 +72,8 @@ class World:
             return (y + 1) >= self.height
         elif direction == 'e':
             return (x + 1) >= self.width
+        elif direction == 's':
+            return (y - 1) < 0
 
     def generate_rooms(self):
         '''
@@ -83,7 +87,7 @@ class World:
 
         # start from middle of the bottom row
         seed_x = self.width // 2
-        seed_y = 0
+        seed_y = self.height // 2
 
         x = seed_x
         y = seed_y
@@ -97,7 +101,7 @@ class World:
         # While there are rooms to be created...
         while room_count < 100:
             # never travel south
-            directions = ['w', 'n', 'e']
+            directions = ['w', 'n', 'e', 's']
             prev_direction = None
 
             # start at the seed room
@@ -108,7 +112,7 @@ class World:
             y = seed_y
 
             # find a random direction
-            direction = directions[randint(0, 2)]
+            direction = directions[randint(0, 3)]
 
             can_move = True
 
@@ -123,6 +127,8 @@ class World:
                         y += 1
                     elif direction == 'e':
                         x += 1
+                    elif direction == 's':
+                        y -= 1
 
             # Create a room in the given direction
             room = Room(room_count, "A Generic Room", "This is a generic room.", x, y)
@@ -151,44 +157,55 @@ class World:
                         y += 1
                     elif direction == 'e':
                         x += 1
+                    elif direction == 's':
+                        y -= 1
 
                     # find a new random direction
                     prev_direction = direction
-                    directions = ['w', 'n', 'e']
-                    direction = directions[randint(0, 2)]
+                    directions = ['w', 'n', 'e', 's']
+                    direction = directions[randint(0, 3)]
                 # if room is outside bounds OR if room in grid and prev room not connected to target room
                 elif self.is_out_of_bounds(direction, x, y) or previous_room.get_room_in_direction(direction) is None:
                     # if no directions available
                     if directions == None:
                         can_move = False
                     # try again in available directions
+                    elif len(directions) == 4:
+                        if prev_direction == 'e':
+                            directions = ['n', 'e', 's']
+                            direction = 'n'
+                        elif prev_direction == 'w':
+                            directions = ['s', 'n', 'w']
+                            direction = 's'
+                        elif prev_direction == 'n':
+                            directions = ['e', 'w', 'n']
+                            direction = 'e'
+                        elif prev_direction == 's':
+                            directions = ['w', 's', 'e']
+                            direction = 'w'
                     elif len(directions) == 3:
                         if prev_direction == 'e':
-                            directions = ['n', 'e']
-                            direction = 'n'
+                            directions = ['e', 's']
+                            direction = 'e'
                         elif prev_direction == 'w':
                             directions = ['n', 'w']
                             direction = 'n'
                         elif prev_direction == 'n':
-                            directions = ['w', 'e']
+                            directions = ['w', 'n']
                             direction = 'w'
+                        elif prev_direction == 's':
+                            directions = ['s', 'e']
+                            direction = 's'
                     elif len(directions) == 2:
                         if prev_direction == 'e':
-                            direction = 'e'
+                            direction = 's'
                         elif prev_direction == 'w':
                             direction = 'w'
                         elif prev_direction == 'n':
+                            direction = 'n'
+                        elif prev_direction == 's':
                             direction = 'e'
                         directions = None
-
-
-            # update coordinate value
-            # if direction == 'w':
-            #     x -= 1
-            # elif direction == 'n':
-            #     y += 1
-            # elif direction == 'e':
-            #     x += 1
 
 
     def print_rooms(self):
@@ -197,57 +214,57 @@ class World:
         '''
 
         
-    for room in self.rooms:
-            print(room)
+    # for room in self.rooms:
+            # print(room)
 
-        # # Add top border
-        # str = "# " * ((3 + self.width * 5) // 2) + "\n"
+         # Add top border
+         str = "# " * ((3 + self.width * 5) // 2) + "\n"
 
-        # # The console prints top to bottom but our array is arranged
-        # # bottom to top.
-        # #
-        # # We reverse it so it draws in the right direction.
-        # reverse_grid = list(self.grid) # make a copy of the list
-        # reverse_grid.reverse()
-        # for row in reverse_grid:
-        #     # PRINT NORTH CONNECTION ROW
-        #     str += "#"
-        #     for room in row:
-        #         if room is not None and room.n_to is not None:
-        #             str += "  |  "
-        #         else:
-        #             str += "     "
-        #     str += "#\n"
-        #     # PRINT ROOM ROW
-        #     str += "#"
-        #     for room in row:
-        #         if room is not None and room.w_to is not None:
-        #             str += "-"
-        #         else:
-        #             str += " "
-        #         if room is not None:
-        #             str += f"{room.id}".zfill(3)
-        #         else:
-        #             str += "   "
-        #         if room is not None and room.e_to is not None:
-        #             str += "-"
-        #         else:
-        #             str += " "
-        #     str += "#\n"
-        #     # PRINT SOUTH CONNECTION ROW
-        #     str += "#"
-        #     for room in row:
-        #         if room is not None and room.s_to is not None:
-        #             str += "  |  "
-        #         else:
-        #             str += "     "
-        #     str += "#\n"
+         # The console prints top to bottom but our array is arranged
+         # bottom to top.
+         #
+         # We reverse it so it draws in the right direction.
+         reverse_grid = list(self.grid) # make a copy of the list
+         reverse_grid.reverse()
+         for row in reverse_grid:
+             # PRINT NORTH CONNECTION ROW
+             str += "#"
+             for room in row:
+                 if room is not None and room.n_to is not None:
+                     str += "  |  "
+                 else:
+                     str += "     "
+             str += "#\n"
+             # PRINT ROOM ROW
+             str += "#"
+             for room in row:
+                 if room is not None and room.w_to is not None:
+                     str += "-"
+                 else:
+                     str += " "
+                 if room is not None:
+                     str += f"{room.id}".zfill(3)
+                 else:
+                     str += "   "
+                 if room is not None and room.e_to is not None:
+                     str += "-"
+                 else:
+                     str += " "
+             str += "#\n"
+             # PRINT SOUTH CONNECTION ROW
+             str += "#"
+             for room in row:
+                 if room is not None and room.s_to is not None:
+                     str += "  |  "
+                 else:
+                     str += "     "
+             str += "#\n"
 
-        # # Add bottom border
-        # str += "# " * ((3 + self.width * 5) // 2) + "\n"
+         # Add bottom border
+         str += "# " * ((3 + self.width * 5) // 2) + "\n"
 
-        # # Print string
-        # print(str)
+         # Print string
+         print(str)
 
 w = World()
 num_rooms = 100
