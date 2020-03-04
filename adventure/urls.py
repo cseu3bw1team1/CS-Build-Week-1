@@ -6,7 +6,7 @@ urlpatterns = [
     url('move', api.move),
     url('say', api.say),
     url('room', api.room),
-    url('get', api.get),
+    url('get', api.get),p
     url('drop', api.drop),
     url('look', api.look),
     url('inventory', api.inventory),
