@@ -9,7 +9,8 @@ from rest_framework.decorators import api_view
 import json
 
 # instantiate pusher
-pusher = Pusher(app_id=config('PUSHER_APP_ID'), key=config('PUSHER_KEY'), secret=config('PUSHER_SECRET'), cluster=config('PUSHER_CLUSTER'))
+# pusher = Pusher(app_id=config('PUSHER_APP_ID'), key=config(
+    # 'PUSHER_KEY'), secret=config('PUSHER_SECRET'), cluster=config('PUSHER_CLUSTER'))
 
 @csrf_exempt
 @api_view(["GET"])
@@ -19,10 +20,23 @@ def initialize(request):
     player_id = player.id
     uuid = player.uuid
     room = player.room()
+    room_items = room.items_res()
+    rooms = list(Room.objects.values('id', 'title', 'x',
+                 'y', 'n_to', 's_to', 'e_to', 'w_to'))
     players = room.playerNames(player_id)
-    return JsonResponse({'uuid': uuid, 'name':player.user.username, 'title':room.title, 'description':room.description, 'x':room.x, 'y':room.y, 'players':players}, safe=True)
+    inventory = player.items_res()
+    return JsonResponse({'uuid': uuid, 'name': player.user.username, 'title': room.title, 'description': room.description, 'inventory': inventory, 'x': room.x, 'y': room.y, 'players': players, 'rooms': rooms, 'room_items': room_items}, safe=True)
 
-
+@csrf_exempt
+@api_view(["GET"])
+def room(request):
+    user = request.user
+    player = user.player
+    player_id = player.id
+    room = player.room()
+    room_items = room.items_res()
+    players = room.playerNames(player_id)
+    return JsonResponse({'players': players, 'room_items': room_items}, safe=True)
 
 # @csrf_exempt
 @api_view(["POST"])
@@ -76,3 +90,65 @@ def say(request):
             pusher.trigger(f'p-channel-{p_uuid}', u'broadcast', {'message':f'{player.user.username} says "{message}"'})
 
     return JsonResponse({'name':player.user.username, 'title':room.title, 'message':message}, safe=True)
+
+@csrf_exempt
+@api_view(["POST"])
+def get(request):
+    player = request.user.player
+    room = player.room()
+    data = json.loads(request.body)
+    item = data['item']
+    try:
+        item_taken = room.items.get(name=item)
+    except Item.DoesNotExist:
+        return JsonResponse({'error_msg': 'That item does not exist'}, safe=True)
+
+    player_id = player.id
+    message = player.get_item(item)
+    inventory = player.items_res()
+    room_items = room.items_res()
+
+    currentPlayerUUIDs = room.playerUUIDs(player_id)
+    for p_uuid in currentPlayerUUIDs:
+        pusher.trigger(f'p-channel-{p_uuid}', u'broadcast', {'update': 'room'})
+
+    return JsonResponse({'message': message, 'item': {"name": item_taken.name, "description": item_taken.description}, 'inventory': inventory, 'room_items': room_items, 'error_msg':""}, safe=True)
+
+
+@csrf_exempt
+@api_view(["POST"])
+def drop(request):
+    player = request.user.player
+    room = player.room()
+    data = json.loads(request.body)
+    item = data['item']
+    try:
+        player.items.get(name=item)
+    except Item.DoesNotExist:
+        return JsonResponse({'error_msg':'You don\'t have that item!'}, safe=True)
+
+    player_id = player.id
+    message = player.drop_item(item)
+    inventory = player.items_res()
+    room_items = room.items_res()
+
+    currentPlayerUUIDs = room.playerUUIDs(player_id)
+    for p_uuid in currentPlayerUUIDs:
+        pusher.trigger(f'p-channel-{p_uuid}', u'broadcast', {'update': 'room'})
+
+    return JsonResponse({'message': message, 'inventory': inventory, 'room_items': room_items, 'error_msg':""}, safe=True)
+
+@csrf_exempt
+@api_view(["GET"])
+def inventory(request):
+    player = request.user.player
+    inventory = player.items_res()
+    return JsonResponse({'inventory': inventory}, safe=True)
+
+@csrf_exempt
+@api_view(["GET"])
+def look(request):
+    player = request.user.player
+    room = player.room()
+    room_items = room.items_res()
+    return JsonResponse({'room_items':room_items}, safe=True)
