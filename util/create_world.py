@@ -7,15 +7,18 @@ adj = ["Sunny", "Gloomy", "Happy", "Scary", "Fun", "Cold", "Fiery", "Lonely", "B
 nouns = ["Desert", "Plateau", "Savannah", "Forest", "Tundra", "Taiga", "Iceberg", "Lake", "River", "Peak"]
 rooms = []
 descriptions = []
+#
 for i in range(len(adj)):
     for j in range(len(adj)):
         rooms.append(adj[i] + " " + nouns[j])
+#
 for i in range(len(adj)):
     for j in range(len(adj)): 
         if (i/2 == 0):
             descriptions.append(f"You are now in the {nouns[j]}. It is {adj[i]}. Keep moving to keep exploring!")
         else: 
             descriptions.append(f"This is the {nouns[j]}. It is {adj[i]}! What may await in the next room?")
+#
 class World:
     def __init__(self):
         self.grid = None
@@ -167,10 +170,5 @@ class World:
                         elif prev_direction == 's':
                             direction = 'e'
                         directions = None
-
-
-
-# copy all lines of code above and paste into interpreter
-# then run these two lines:
-w = World()
-w.generate_rooms()
+# 
+World().generate_rooms()
